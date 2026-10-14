@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#5b4bdb">
+  <title>Idealist</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <button id="back" class="icon-btn" hidden aria-label="Back">←</button>
+    <h1 id="title">Idealist</h1>
+    <button id="open-settings" class="icon-btn" aria-label="Settings">⚙</button>
+  </header>
+
+  <main>
+    <!-- Home -->
+    <section id="view-home" class="view">
+      <button class="big" data-go="task"><span>✅</span> Daily Task</button>
+      <button class="big alt" data-go="idea"><span>💡</span> Idea Generator</button>
+      <div class="row">
+        <button class="secondary" data-go="list">📋 My tasks</button>
+        <button class="secondary" data-go="ideas">🗂 My ideas</button>
+      </div>
+      <p id="queue-note" class="note" hidden></p>
+    </section>
+
+    <!-- Idea -->
+    <section id="view-idea" class="view" hidden>
+      <div class="mic-wrap">
+        <button id="idea-mic" class="mic" aria-label="Record">🎤</button>
+        <span id="idea-hint" class="hint">Tap the mic and speak</span>
+      </div>
+      <textarea id="idea-text" rows="8" placeholder="Your idea appears here. You can also type or edit."></textarea>
+      <button id="idea-save" class="primary">Save idea</button>
+    </section>
+
+    <!-- Task -->
+    <section id="view-task" class="view" hidden>
+      <div class="mic-wrap">
+        <button id="task-mic" class="mic" aria-label="Record">🎤</button>
+        <span id="task-hint" class="hint">Tap the mic and speak</span>
+      </div>
+      <textarea id="task-text" rows="4" placeholder="What needs to be done?"></textarea>
+      <label for="task-due">Get it done by</label>
+      <input id="task-due" type="datetime-local">
+      <div class="chips">
+        <button class="chip" data-due="2h">In 2 hours</button>
+        <button class="chip" data-due="today6">Today 6 PM</button>
+        <button class="chip" data-due="tom9">Tomorrow 9 AM</button>
+      </div>
+      <button id="task-save" class="primary">Save task</button>
+    </section>
+
+    <!-- Task list -->
+    <section id="view-list" class="view" hidden>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-status="Pending" role="tab">Pending</button>
+        <button class="tab" data-status="Done" role="tab">Done</button>
+      </div>
+      <ul id="task-list" class="cards"></ul>
+      <p id="list-empty" class="note" hidden></p>
+      <button class="link" data-go="task">+ Add a task</button>
+    </section>
+
+    <!-- Ideas list -->
+    <section id="view-ideas" class="view" hidden>
+      <ul id="idea-list" class="cards"></ul>
+      <p id="ideas-empty" class="note" hidden>No ideas yet. Go record one 💡</p>
+      <button class="link" data-go="idea">+ Add an idea</button>
+    </section>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view" hidden>
+      <label for="set-url">Web app URL</label>
+      <input id="set-url" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+      <label for="set-secret">Secret</label>
+      <input id="set-secret" type="text" placeholder="Same as SECRET in the script" autocomplete="off">
+      <label for="set-lang">Voice language</label>
+      <select id="set-lang">
+        <option value="en-IN">English (India)</option>
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="hi-IN">Hindi</option>
+      </select>
+      <button id="set-save" class="primary">Save settings</button>
+      <button id="set-test" class="link">Test connection</button>
+    </section>
+  </main>
+
+  <!-- Reschedule dialog -->
+  <dialog id="dlg-resched">
+    <h2>Reschedule task</h2>
+    <p id="resched-task" class="note"></p>
+    <input id="resched-due" type="datetime-local">
+    <div class="chips">
+      <button class="chip" data-rdue="2h">In 2 hours</button>
+      <button class="chip" data-rdue="today6">Today 6 PM</button>
+      <button class="chip" data-rdue="tom9">Tomorrow 9 AM</button>
+      <button class="chip" data-rdue="nextweek">Next week</button>
+    </div>
+    <div class="row">
+      <button id="resched-cancel" class="secondary">Cancel</button>
+      <button id="resched-save" class="primary">Save</button>
+    </div>
+  </dialog>
+
+  <!-- Share fallback (used when the phone's share sheet isn't available) -->
+  <dialog id="dlg-share">
+    <h2>Share idea</h2>
+    <div class="share-grid">
+      <a id="sh-whatsapp" class="secondary" target="_blank" rel="noopener">WhatsApp</a>
+      <a id="sh-telegram" class="secondary" target="_blank" rel="noopener">Telegram</a>
+      <a id="sh-email" class="secondary">Email</a>
+      <a id="sh-sms" class="secondary">SMS</a>
+      <button id="sh-copy" class="secondary">Copy text</button>
+      <button id="sh-close" class="secondary">Close</button>
+    </div>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
