@@ -16,6 +16,40 @@ function toast(msg) {
   toast._t = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
+function el(tag, className, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+/* ---------- icons (inline SVG, no text on buttons) ---------- */
+const ICONS = {
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  back: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/>',
+  sliders: '<path d="M4 6h8m4 0h4M4 12h2m4 0h10M4 18h10m4 0h2"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="18" r="2"/>',
+  reschedule: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+};
+function icon(name, size = 20) {
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+}
+function iconBtn(name, label, extra = '') {
+  const b = el('button', `ibtn ${extra}`.trim());
+  b.innerHTML = icon(name);
+  b.title = label;
+  b.setAttribute('aria-label', label);
+  return b;
+}
+document.querySelectorAll('[data-icon]').forEach((n) => {
+  n.innerHTML = icon(n.dataset.icon, Number(n.dataset.size) || 22);
+});
+
 /* ---------- API (Google Apps Script web app) ---------- */
 async function callApi(action, payload = {}) {
   const { url, secret } = cfg();
@@ -36,7 +70,7 @@ const queue = {
   all: () => store.get('queue', []),
   push(item) { store.set('queue', [...this.all(), item]); renderQueueNote(); },
   async flush() {
-    let items = this.all();
+    const items = this.all();
     if (!items.length || !navigator.onLine) return;
     const remaining = [];
     for (const it of items) {
@@ -44,7 +78,7 @@ const queue = {
     }
     store.set('queue', remaining);
     renderQueueNote();
-    if (remaining.length < items.length) toast('Synced saved items');
+    if (remaining.length < items.length) { toast('Synced saved items'); if (current === 'home') loadHome(); }
   },
 };
 function renderQueueNote() {
@@ -66,16 +100,17 @@ async function saveOrQueue(action, payload) {
 }
 
 /* ---------- navigation ---------- */
-const titles = { home: 'Idealist', idea: 'Idea Generator', task: 'Daily Task', list: 'My tasks', ideas: 'My ideas', settings: 'Settings' };
+const titles = { home: 'Idealist', idea: 'New idea', task: 'New task', settings: 'Settings' };
 let current = 'home';
 function show(view) {
   current = view;
   document.querySelectorAll('.view').forEach((v) => (v.hidden = v.id !== `view-${view}`));
   $('title').textContent = titles[view];
   $('back').hidden = view === 'home';
+  $('open-settings').hidden = view === 'settings';
   stopAllDictation();
-  if (view === 'list') loadTasks();
-  if (view === 'ideas') loadIdeas();
+  window.scrollTo(0, 0);
+  if (view === 'home') loadHome();
   if (view === 'settings') fillSettings();
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
@@ -88,11 +123,10 @@ const dictations = [];
 
 function makeDictation(mic, textarea, hint) {
   let rec = null, listening = false, base = '';
-  const idleHint = hint.textContent;
 
   if (!SR) {
     mic.disabled = true;
-    hint.textContent = 'Voice typing is not supported here. Use Chrome on Android, or type.';
+    hint.textContent = 'Voice typing needs Chrome on Android. You can type instead.';
     return;
   }
 
@@ -121,13 +155,13 @@ function makeDictation(mic, textarea, hint) {
   function start() {
     listening = true;
     mic.classList.add('on');
-    hint.textContent = 'Listening… tap again to stop';
+    hint.textContent = 'Listening…';
     begin();
   }
   function stop() {
     listening = false;
     mic.classList.remove('on');
-    hint.textContent = idleHint;
+    hint.textContent = '';
     if (rec) { rec.onend = null; try { rec.stop(); } catch {} }
   }
 
@@ -139,23 +173,7 @@ function stopAllDictation() { dictations.forEach((stop) => stop()); }
 makeDictation($('idea-mic'), $('idea-text'), $('idea-hint'));
 makeDictation($('task-mic'), $('task-text'), $('task-hint'));
 
-/* ---------- ideas ---------- */
-$('idea-save').addEventListener('click', async () => {
-  stopAllDictation();
-  const text = $('idea-text').value.trim();
-  if (!text) return toast('Say or type an idea first');
-  const btn = $('idea-save');
-  btn.disabled = true;
-  try {
-    const r = await saveOrQueue('addIdea', { text, due: $('idea-due').value });
-    $('idea-text').value = '';
-    $('idea-due').value = '';
-    toast(r === 'saved' ? 'Idea saved 💡' : 'Offline — will sync later');
-  } catch (err) { toast(err.message); }
-  btn.disabled = false;
-});
-
-/* ---------- tasks ---------- */
+/* ---------- dates ---------- */
 const pad = (n) => String(n).padStart(2, '0');
 const toLocalInput = (d) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -171,12 +189,11 @@ function presetDate(kind) {
 document.querySelectorAll('[data-due]').forEach((c) =>
   c.addEventListener('click', () => ($('task-due').value = presetDate(c.dataset.due)))
 );
-document.querySelectorAll('[data-rdue]').forEach((c) =>
-  c.addEventListener('click', () => ($('resched-due').value = presetDate(c.dataset.rdue)))
-);
-
 document.querySelectorAll('[data-idue]').forEach((c) =>
   c.addEventListener('click', () => ($('idea-due').value = presetDate(c.dataset.idue)))
+);
+document.querySelectorAll('[data-rdue]').forEach((c) =>
+  c.addEventListener('click', () => ($('resched-due').value = presetDate(c.dataset.rdue)))
 );
 
 // Shows the raw text instead of "Invalid Date" if a value can't be parsed.
@@ -185,6 +202,39 @@ const fmtDate = (s) => {
   return isNaN(d) ? String(s) : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 };
 
+/* ---------- Google Calendar (opens the pre-filled "new event" screen, 30 minutes from the due time) ---------- */
+function calendarUrl(text, dueLocal) {
+  const start = new Date(dueLocal);
+  if (isNaN(start)) return '';
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+  const f = (d) => toLocalInput(d).replace(/[-:]/g, '') + '00';
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + `&text=${encodeURIComponent(text)}&dates=${f(start)}/${f(end)}`
+    + `&details=${encodeURIComponent('Added from Idealist')}`;
+}
+function openCalendar(text, dueLocal) {
+  const url = calendarUrl(text, dueLocal);
+  if (!url) return toast('Set a date first');
+  if (!window.open(url, '_blank', 'noopener')) toast('Allow pop-ups to open Calendar');
+}
+
+/* ---------- add idea / add task ---------- */
+$('idea-save').addEventListener('click', async () => {
+  stopAllDictation();
+  const text = $('idea-text').value.trim();
+  if (!text) return toast('Say or type an idea first');
+  const btn = $('idea-save');
+  btn.disabled = true;
+  try {
+    const r = await saveOrQueue('addIdea', { text, due: $('idea-due').value });
+    $('idea-text').value = '';
+    $('idea-due').value = '';
+    toast(r === 'saved' ? 'Idea saved' : 'Offline, will sync later');
+    show('home');
+  } catch (err) { toast(err.message); }
+  btn.disabled = false;
+});
+
 $('task-save').addEventListener('click', async () => {
   stopAllDictation();
   const text = $('task-text').value.trim();
@@ -192,78 +242,111 @@ $('task-save').addEventListener('click', async () => {
   const btn = $('task-save');
   btn.disabled = true;
   try {
-    const r = await saveOrQueue('addTask', { text, due: $('task-due').value });
+    const due = $('task-due').value;
+    const addToCal = $('task-cal').checked;
+    store.set('addToCal', addToCal);
+    const r = await saveOrQueue('addTask', { text, due });
     $('task-text').value = '';
     $('task-due').value = '';
-    toast(r === 'saved' ? 'Task saved ✅' : 'Offline — will sync later');
+    toast(r === 'saved' ? 'Task saved' : 'Offline, will sync later');
+    show('home');
+    if (addToCal && due) openCalendar(text, due);
+    else if (addToCal) toast('Saved. Pick a date to add it to your calendar.');
   } catch (err) { toast(err.message); }
   btn.disabled = false;
 });
 
-/* ----- task list: Pending / Done tabs, Done + Reschedule actions ----- */
-let taskStatus = 'Pending';
-
-function el(tag, className, text) {
-  const n = document.createElement(tag);
-  if (className) n.className = className;
-  if (text !== undefined) n.textContent = text;
-  return n;
+/* ---------- home: tasks + ideas on one screen ---------- */
+function calendarButton(text, due) {
+  const b = iconBtn('calendar', 'Add to Google Calendar', 'when-open');
+  b.addEventListener('click', () => openCalendar(text, due));
+  return b;
 }
 
-document.querySelectorAll('#view-list .tab').forEach((tab) =>
-  tab.addEventListener('click', () => {
-    taskStatus = tab.dataset.status;
-    document.querySelectorAll('#view-list .tab').forEach((t) => t.classList.toggle('active', t === tab));
-    loadTasks();
-  })
-);
+/** One card for a task or an idea. Only icons on the buttons; the check turns green when done. */
+function itemCard(item, kind) {
+  const isDone = item.status === 'Done';
+  const due = item.due ? item.due.replace(' ', 'T') : '';
+  const overdue = !isDone && due && due < toLocalInput(new Date());
+  const li = el('li', isDone ? 'done' : overdue ? 'overdue' : '');
 
-function renderTasks(tasks, status) {
-  const ul = $('task-list');
-  ul.innerHTML = '';
-  const empty = $('list-empty');
-  empty.hidden = tasks.length > 0;
-  empty.textContent = status === 'Pending' ? 'No pending tasks 🎉' : 'Nothing completed yet';
-  const now = toLocalInput(new Date());
+  li.append(el('div', 'body', item.text));
 
-  tasks.forEach((t) => {
-    const due = t.due ? t.due.replace(' ', 'T') : '';
-    const overdue = status === 'Pending' && due && due < now;
-    const li = el('li', overdue ? 'overdue' : '');
-    li.append(el('div', 'body', t.text));
+  const meta = el('div', 'meta');
+  if (due) {
+    meta.innerHTML = icon('clock', 14);
+    meta.append(fmtDate(due));
+    li.append(meta);
+  } else if (kind === 'idea' && item.created) {
+    meta.append(fmtDate(item.created));
+    li.append(meta);
+  }
 
-    if (status === 'Pending') {
-      li.append(el('div', 'meta', due ? `${overdue ? '⚠️ Overdue · was due' : '🕒 Due'} ${fmtDate(due)}` : 'No due date'));
-      const actions = el('div', 'actions');
-      const done = el('button', 'primary small', '✓ Done');
-      const resched = el('button', 'secondary small', '↻ Reschedule');
-      done.addEventListener('click', async () => {
-        done.disabled = true;
-        try {
-          await callApi('completeTask', { id: t.id });
-          toast('Done 🎉');
-          loadTasks();
-        } catch (err) { done.disabled = false; toast(err.message); }
-      });
-      resched.addEventListener('click', () => openReschedule('task', t, due));
-      actions.append(done, resched);
-      li.append(actions);
-    } else {
-      li.append(el('div', 'meta', t.completed ? `✓ Completed ${fmtDate(t.completed)}` : '✓ Completed'));
+  const actions = el('div', 'actions');
+
+  const done = iconBtn('check', 'Mark as done', isDone ? 'done' : '');
+  done.addEventListener('click', async () => {
+    if (li.classList.contains('done')) return;
+    // Show the change immediately, undo it if saving fails.
+    li.classList.add('done');
+    done.classList.add('done');
+    li.classList.remove('overdue');
+    try {
+      await callApi(kind === 'task' ? 'completeTask' : 'completeIdea', { id: item.id });
+      toast('Done');
+      updateCounts();
+    } catch (err) {
+      li.classList.remove('done');
+      done.classList.remove('done');
+      if (overdue) li.classList.add('overdue');
+      toast(err.message);
     }
-    ul.append(li);
   });
+  actions.append(done);
+
+  const resched = iconBtn(due ? 'reschedule' : 'clock', due ? 'Reschedule' : 'Set date', 'when-open');
+  resched.addEventListener('click', () => openReschedule(kind, item, due));
+  actions.append(resched);
+
+  if (due) actions.append(calendarButton(item.text, due));
+
+  if (kind === 'idea') {
+    const share = iconBtn('share', 'Share');
+    share.addEventListener('click', () => shareIdea(item.text));
+    actions.append(share);
+  }
+
+  li.append(actions);
+  return li;
 }
 
-async function loadTasks() {
-  const status = taskStatus;
-  const cacheKey = `tasksCache-${status}`;
-  renderTasks(store.get(cacheKey, []), status);
-  try {
-    const tasks = await callApi('listTasks', { status });
-    store.set(cacheKey, tasks);
-    if (status === taskStatus) renderTasks(tasks, status);
-  } catch (err) { toast(err.message); }
+function updateCounts() {
+  const open = (id) => $(id).querySelectorAll('li:not(.done)').length;
+  $('task-count').textContent = open('task-list') || '';
+  $('idea-count').textContent = open('idea-list') || '';
+}
+
+function renderList(listId, emptyId, items, kind) {
+  const ul = $(listId);
+  ul.innerHTML = '';
+  $(emptyId).hidden = items.length > 0;
+  items.forEach((it) => ul.append(itemCard(it, kind)));
+  updateCounts();
+}
+
+async function loadHome() {
+  renderList('task-list', 'task-empty', store.get('tasksAll', []), 'task');
+  renderList('idea-list', 'idea-empty', store.get('ideasAll', []), 'idea');
+  if (!cfg().url) return;
+  const [t, i] = await Promise.allSettled([
+    callApi('listTasks', { status: 'All' }),
+    callApi('listIdeas', { status: 'All' }),
+  ]);
+  if (current !== 'home') return;
+  if (t.status === 'fulfilled') { store.set('tasksAll', t.value); renderList('task-list', 'task-empty', t.value, 'task'); }
+  if (i.status === 'fulfilled') { store.set('ideasAll', i.value); renderList('idea-list', 'idea-empty', i.value, 'idea'); }
+  const failed = [t, i].find((r) => r.status === 'rejected');
+  if (failed) toast(failed.reason.message);
 }
 
 /* ----- reschedule dialog ----- */
@@ -271,7 +354,7 @@ let reschedId = null, reschedKind = 'task';
 function openReschedule(kind, item, due) {
   reschedKind = kind;
   reschedId = item.id;
-  $('resched-title').textContent = due ? `Reschedule ${kind}` : `Set date for ${kind}`;
+  $('resched-title').textContent = due ? 'Reschedule' : 'Set date';
   $('resched-task').textContent = item.text;
   $('resched-due').value = due || presetDate('tom9');
   $('dlg-resched').showModal();
@@ -285,80 +368,13 @@ $('resched-save').addEventListener('click', async () => {
   try {
     await callApi(reschedKind === 'idea' ? 'rescheduleIdea' : 'rescheduleTask', { id: reschedId, due });
     $('dlg-resched').close();
-    toast('Date saved ✔');
-    if (reschedKind === 'idea') loadIdeas(); else loadTasks();
+    toast('Date saved');
+    loadHome();
   } catch (err) { toast(err.message); }
   btn.disabled = false;
 });
 
-/* ---------- ideas list + share ---------- */
-let ideaStatus = 'Open';
-
-document.querySelectorAll('#view-ideas .tab').forEach((tab) =>
-  tab.addEventListener('click', () => {
-    ideaStatus = tab.dataset.istatus;
-    document.querySelectorAll('#view-ideas .tab').forEach((t) => t.classList.toggle('active', t === tab));
-    loadIdeas();
-  })
-);
-
-function renderIdeas(ideas, status) {
-  const ul = $('idea-list');
-  ul.innerHTML = '';
-  const empty = $('ideas-empty');
-  empty.hidden = ideas.length > 0;
-  empty.textContent = status === 'Open' ? 'No open ideas. Go record one 💡' : 'No completed ideas yet';
-  const now = toLocalInput(new Date());
-
-  ideas.forEach((idea) => {
-    const due = idea.due ? idea.due.replace(' ', 'T') : '';
-    const overdue = status === 'Open' && due && due < now;
-    const li = el('li', overdue ? 'overdue' : '');
-    li.append(el('div', 'body', idea.text));
-    li.append(el('div', 'meta', `💡 Added ${idea.created ? fmtDate(idea.created) : ''}`));
-
-    if (status === 'Open') {
-      if (due) li.append(el('div', `meta${overdue ? ' overdue' : ''}`, `${overdue ? '⚠️ Overdue · was due' : '🕒 Complete by'} ${fmtDate(due)}`));
-      const row1 = el('div', 'actions');
-      const done = el('button', 'primary small', '✓ Done');
-      const resched = el('button', 'secondary small', due ? '↻ Reschedule' : '🕒 Set date');
-      done.addEventListener('click', async () => {
-        done.disabled = true;
-        try {
-          await callApi('completeIdea', { id: idea.id });
-          toast('Done 🎉');
-          loadIdeas();
-        } catch (err) { done.disabled = false; toast(err.message); }
-      });
-      resched.addEventListener('click', () => openReschedule('idea', idea, due));
-      row1.append(done, resched);
-      li.append(row1);
-    } else {
-      li.append(el('div', 'meta', idea.completed ? `✓ Completed ${fmtDate(idea.completed)}` : '✓ Completed'));
-    }
-
-    const row2 = el('div', 'actions');
-    const share = el('button', 'secondary small', '↗ Share');
-    const copy = el('button', 'secondary small', 'Copy');
-    share.addEventListener('click', () => shareIdea(idea.text));
-    copy.addEventListener('click', () => copyText(idea.text));
-    row2.append(share, copy);
-    li.append(row2);
-    ul.append(li);
-  });
-}
-
-async function loadIdeas() {
-  const status = ideaStatus;
-  const cacheKey = `ideasCache-${status}`;
-  renderIdeas(store.get(cacheKey, []), status);
-  try {
-    const ideas = await callApi('listIdeas', { status });
-    store.set(cacheKey, ideas);
-    if (status === ideaStatus) renderIdeas(ideas, status);
-  } catch (err) { toast(err.message); }
-}
-
+/* ----- share ----- */
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); toast('Copied'); }
   catch { toast('Could not copy'); }
@@ -394,11 +410,12 @@ function readSettings() {
 $('set-save').addEventListener('click', () => { store.set('cfg', readSettings()); toast('Settings saved'); show('home'); queue.flush(); });
 $('set-test').addEventListener('click', async () => {
   store.set('cfg', readSettings());
-  try { await callApi('ping'); toast('Connected ✔'); } catch (err) { toast(err.message); }
+  try { await callApi('ping'); toast('Connected'); } catch (err) { toast(err.message); }
 });
 
 /* ---------- start ---------- */
 window.addEventListener('online', () => queue.flush());
+$('task-cal').checked = store.get('addToCal', false);
 renderQueueNote();
 if (!cfg().url) show('settings'); else { show('home'); queue.flush(); }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

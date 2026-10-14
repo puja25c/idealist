@@ -11,30 +11,44 @@
 </head>
 <body>
   <header>
-    <button id="back" class="icon-btn" hidden aria-label="Back">←</button>
+    <button id="back" class="ibtn plain" hidden aria-label="Back" title="Back"><span data-icon="back"></span></button>
     <h1 id="title">Idealist</h1>
-    <button id="open-settings" class="icon-btn" aria-label="Settings">⚙</button>
+    <button id="open-settings" class="ibtn plain" aria-label="Settings" title="Settings"><span data-icon="sliders"></span></button>
   </header>
 
   <main>
-    <!-- Home -->
+    <!-- Home: tasks and ideas on one screen -->
     <section id="view-home" class="view">
-      <button class="big" data-go="task"><span>✅</span> Daily Task</button>
-      <button class="big alt" data-go="idea"><span>💡</span> Idea Generator</button>
-      <div class="row">
-        <button class="secondary" data-go="list">📋 My tasks</button>
-        <button class="secondary" data-go="ideas">🗂 My ideas</button>
-      </div>
+      <section class="block">
+        <div class="block-head">
+          <h2>Tasks</h2>
+          <span id="task-count" class="count"></span>
+          <button class="ibtn accent" data-go="task" aria-label="Add task" title="Add task"><span data-icon="plus"></span></button>
+        </div>
+        <ul id="task-list" class="cards"></ul>
+        <p id="task-empty" class="empty" hidden>Nothing here yet</p>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <h2>Ideas</h2>
+          <span id="idea-count" class="count"></span>
+          <button class="ibtn accent amber" data-go="idea" aria-label="Add idea" title="Add idea"><span data-icon="plus"></span></button>
+        </div>
+        <ul id="idea-list" class="cards"></ul>
+        <p id="idea-empty" class="empty" hidden>Nothing here yet</p>
+      </section>
+
       <p id="queue-note" class="note" hidden></p>
     </section>
 
-    <!-- Idea -->
+    <!-- Add idea -->
     <section id="view-idea" class="view" hidden>
       <div class="mic-wrap">
-        <button id="idea-mic" class="mic" aria-label="Record">🎤</button>
-        <span id="idea-hint" class="hint">Tap the mic and speak</span>
+        <button id="idea-mic" class="mic" aria-label="Record" title="Record"><span data-icon="mic" data-size="34"></span></button>
+        <span id="idea-hint" class="hint"></span>
       </div>
-      <textarea id="idea-text" rows="6" placeholder="Your idea appears here. You can also type or edit."></textarea>
+      <textarea id="idea-text" rows="6" placeholder="Speak or type your idea"></textarea>
       <label for="idea-due">Complete by (optional)</label>
       <input id="idea-due" type="datetime-local">
       <div class="chips">
@@ -43,16 +57,16 @@
         <button class="chip" data-idue="tom9">Tomorrow 9 AM</button>
         <button class="chip" data-idue="nextweek">Next week</button>
       </div>
-      <button id="idea-save" class="primary">Save idea</button>
+      <button id="idea-save" class="primary save" aria-label="Save idea" title="Save idea"><span data-icon="check" data-size="26"></span></button>
     </section>
 
-    <!-- Task -->
+    <!-- Add task -->
     <section id="view-task" class="view" hidden>
       <div class="mic-wrap">
-        <button id="task-mic" class="mic" aria-label="Record">🎤</button>
-        <span id="task-hint" class="hint">Tap the mic and speak</span>
+        <button id="task-mic" class="mic" aria-label="Record" title="Record"><span data-icon="mic" data-size="34"></span></button>
+        <span id="task-hint" class="hint"></span>
       </div>
-      <textarea id="task-text" rows="4" placeholder="What needs to be done?"></textarea>
+      <textarea id="task-text" rows="4" placeholder="Speak or type your task"></textarea>
       <label for="task-due">Get it done by</label>
       <input id="task-due" type="datetime-local">
       <div class="chips">
@@ -60,29 +74,11 @@
         <button class="chip" data-due="today6">Today 6 PM</button>
         <button class="chip" data-due="tom9">Tomorrow 9 AM</button>
       </div>
-      <button id="task-save" class="primary">Save task</button>
-    </section>
-
-    <!-- Task list -->
-    <section id="view-list" class="view" hidden>
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-status="Pending" role="tab">Pending</button>
-        <button class="tab" data-status="Done" role="tab">Done</button>
-      </div>
-      <ul id="task-list" class="cards"></ul>
-      <p id="list-empty" class="note" hidden></p>
-      <button class="link" data-go="task">+ Add a task</button>
-    </section>
-
-    <!-- Ideas list -->
-    <section id="view-ideas" class="view" hidden>
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-istatus="Open" role="tab">Open</button>
-        <button class="tab" data-istatus="Done" role="tab">Done</button>
-      </div>
-      <ul id="idea-list" class="cards"></ul>
-      <p id="ideas-empty" class="note" hidden></p>
-      <button class="link" data-go="idea">+ Add an idea</button>
+      <label class="check" title="Also add to Google Calendar">
+        <input id="task-cal" type="checkbox" aria-label="Also add to Google Calendar">
+        <span data-icon="calendar" data-size="22"></span>
+      </label>
+      <button id="task-save" class="primary save" aria-label="Save task" title="Save task"><span data-icon="check" data-size="26"></span></button>
     </section>
 
     <!-- Settings -->
