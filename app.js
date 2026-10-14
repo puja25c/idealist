@@ -147,8 +147,9 @@ $('idea-save').addEventListener('click', async () => {
   const btn = $('idea-save');
   btn.disabled = true;
   try {
-    const r = await saveOrQueue('addIdea', { text });
+    const r = await saveOrQueue('addIdea', { text, due: $('idea-due').value });
     $('idea-text').value = '';
+    $('idea-due').value = '';
     toast(r === 'saved' ? 'Idea saved 💡' : 'Offline — will sync later');
   } catch (err) { toast(err.message); }
   btn.disabled = false;
@@ -174,7 +175,15 @@ document.querySelectorAll('[data-rdue]').forEach((c) =>
   c.addEventListener('click', () => ($('resched-due').value = presetDate(c.dataset.rdue)))
 );
 
-const fmtDate = (s) => new Date(s.replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+document.querySelectorAll('[data-idue]').forEach((c) =>
+  c.addEventListener('click', () => ($('idea-due').value = presetDate(c.dataset.idue)))
+);
+
+// Shows the raw text instead of "Invalid Date" if a value can't be parsed.
+const fmtDate = (s) => {
+  const d = new Date(String(s).replace(' ', 'T'));
+  return isNaN(d) ? String(s) : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+};
 
 $('task-save').addEventListener('click', async () => {
   stopAllDictation();
@@ -201,10 +210,10 @@ function el(tag, className, text) {
   return n;
 }
 
-document.querySelectorAll('.tab').forEach((tab) =>
+document.querySelectorAll('#view-list .tab').forEach((tab) =>
   tab.addEventListener('click', () => {
     taskStatus = tab.dataset.status;
-    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('#view-list .tab').forEach((t) => t.classList.toggle('active', t === tab));
     loadTasks();
   })
 );
@@ -236,7 +245,7 @@ function renderTasks(tasks, status) {
           loadTasks();
         } catch (err) { done.disabled = false; toast(err.message); }
       });
-      resched.addEventListener('click', () => openReschedule(t, due));
+      resched.addEventListener('click', () => openReschedule('task', t, due));
       actions.append(done, resched);
       li.append(actions);
     } else {
@@ -258,10 +267,12 @@ async function loadTasks() {
 }
 
 /* ----- reschedule dialog ----- */
-let reschedId = null;
-function openReschedule(task, due) {
-  reschedId = task.id;
-  $('resched-task').textContent = task.text;
+let reschedId = null, reschedKind = 'task';
+function openReschedule(kind, item, due) {
+  reschedKind = kind;
+  reschedId = item.id;
+  $('resched-title').textContent = due ? `Reschedule ${kind}` : `Set date for ${kind}`;
+  $('resched-task').textContent = item.text;
   $('resched-due').value = due || presetDate('tom9');
   $('dlg-resched').showModal();
 }
@@ -272,40 +283,79 @@ $('resched-save').addEventListener('click', async () => {
   const btn = $('resched-save');
   btn.disabled = true;
   try {
-    await callApi('rescheduleTask', { id: reschedId, due });
+    await callApi(reschedKind === 'idea' ? 'rescheduleIdea' : 'rescheduleTask', { id: reschedId, due });
     $('dlg-resched').close();
-    toast('Rescheduled ✔');
-    loadTasks();
+    toast('Date saved ✔');
+    if (reschedKind === 'idea') loadIdeas(); else loadTasks();
   } catch (err) { toast(err.message); }
   btn.disabled = false;
 });
 
 /* ---------- ideas list + share ---------- */
-function renderIdeas(ideas) {
+let ideaStatus = 'Open';
+
+document.querySelectorAll('#view-ideas .tab').forEach((tab) =>
+  tab.addEventListener('click', () => {
+    ideaStatus = tab.dataset.istatus;
+    document.querySelectorAll('#view-ideas .tab').forEach((t) => t.classList.toggle('active', t === tab));
+    loadIdeas();
+  })
+);
+
+function renderIdeas(ideas, status) {
   const ul = $('idea-list');
   ul.innerHTML = '';
-  $('ideas-empty').hidden = ideas.length > 0;
+  const empty = $('ideas-empty');
+  empty.hidden = ideas.length > 0;
+  empty.textContent = status === 'Open' ? 'No open ideas. Go record one 💡' : 'No completed ideas yet';
+  const now = toLocalInput(new Date());
+
   ideas.forEach((idea) => {
-    const li = el('li');
+    const due = idea.due ? idea.due.replace(' ', 'T') : '';
+    const overdue = status === 'Open' && due && due < now;
+    const li = el('li', overdue ? 'overdue' : '');
     li.append(el('div', 'body', idea.text));
-    li.append(el('div', 'meta', `💡 ${idea.created ? fmtDate(idea.created) : ''}`));
-    const actions = el('div', 'actions');
-    const share = el('button', 'primary small', '↗ Share');
+    li.append(el('div', 'meta', `💡 Added ${idea.created ? fmtDate(idea.created) : ''}`));
+
+    if (status === 'Open') {
+      if (due) li.append(el('div', `meta${overdue ? ' overdue' : ''}`, `${overdue ? '⚠️ Overdue · was due' : '🕒 Complete by'} ${fmtDate(due)}`));
+      const row1 = el('div', 'actions');
+      const done = el('button', 'primary small', '✓ Done');
+      const resched = el('button', 'secondary small', due ? '↻ Reschedule' : '🕒 Set date');
+      done.addEventListener('click', async () => {
+        done.disabled = true;
+        try {
+          await callApi('completeIdea', { id: idea.id });
+          toast('Done 🎉');
+          loadIdeas();
+        } catch (err) { done.disabled = false; toast(err.message); }
+      });
+      resched.addEventListener('click', () => openReschedule('idea', idea, due));
+      row1.append(done, resched);
+      li.append(row1);
+    } else {
+      li.append(el('div', 'meta', idea.completed ? `✓ Completed ${fmtDate(idea.completed)}` : '✓ Completed'));
+    }
+
+    const row2 = el('div', 'actions');
+    const share = el('button', 'secondary small', '↗ Share');
     const copy = el('button', 'secondary small', 'Copy');
     share.addEventListener('click', () => shareIdea(idea.text));
     copy.addEventListener('click', () => copyText(idea.text));
-    actions.append(share, copy);
-    li.append(actions);
+    row2.append(share, copy);
+    li.append(row2);
     ul.append(li);
   });
 }
 
 async function loadIdeas() {
-  renderIdeas(store.get('ideasCache', []));
+  const status = ideaStatus;
+  const cacheKey = `ideasCache-${status}`;
+  renderIdeas(store.get(cacheKey, []), status);
   try {
-    const ideas = await callApi('listIdeas');
-    store.set('ideasCache', ideas);
-    renderIdeas(ideas);
+    const ideas = await callApi('listIdeas', { status });
+    store.set(cacheKey, ideas);
+    if (status === ideaStatus) renderIdeas(ideas, status);
   } catch (err) { toast(err.message); }
 }
 

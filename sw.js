@@ -1,6 +1,6 @@
 ﻿// Caches the app shell so Idealist opens instantly (and offline).
 // Bump CACHE when you change app files so phones pick up the update.
-const CACHE = 'idealist-v2';
+const CACHE = 'idealist-v3';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -28,4 +28,5 @@ self.addEventListener('fetch', (e) => {
       .catch(() => caches.match(e.request))
   );
 });
+
 

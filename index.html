@@ -34,7 +34,15 @@
         <button id="idea-mic" class="mic" aria-label="Record">🎤</button>
         <span id="idea-hint" class="hint">Tap the mic and speak</span>
       </div>
-      <textarea id="idea-text" rows="8" placeholder="Your idea appears here. You can also type or edit."></textarea>
+      <textarea id="idea-text" rows="6" placeholder="Your idea appears here. You can also type or edit."></textarea>
+      <label for="idea-due">Complete by (optional)</label>
+      <input id="idea-due" type="datetime-local">
+      <div class="chips">
+        <button class="chip" data-idue="2h">In 2 hours</button>
+        <button class="chip" data-idue="today6">Today 6 PM</button>
+        <button class="chip" data-idue="tom9">Tomorrow 9 AM</button>
+        <button class="chip" data-idue="nextweek">Next week</button>
+      </div>
       <button id="idea-save" class="primary">Save idea</button>
     </section>
 
@@ -68,8 +76,12 @@
 
     <!-- Ideas list -->
     <section id="view-ideas" class="view" hidden>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-istatus="Open" role="tab">Open</button>
+        <button class="tab" data-istatus="Done" role="tab">Done</button>
+      </div>
       <ul id="idea-list" class="cards"></ul>
-      <p id="ideas-empty" class="note" hidden>No ideas yet. Go record one 💡</p>
+      <p id="ideas-empty" class="note" hidden></p>
       <button class="link" data-go="idea">+ Add an idea</button>
     </section>
 
@@ -93,7 +105,7 @@
 
   <!-- Reschedule dialog -->
   <dialog id="dlg-resched">
-    <h2>Reschedule task</h2>
+    <h2 id="resched-title">Reschedule</h2>
     <p id="resched-task" class="note"></p>
     <input id="resched-due" type="datetime-local">
     <div class="chips">
