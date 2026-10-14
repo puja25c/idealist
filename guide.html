@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Idealist setup guide</title>
+  <style>
+    :root { --bg:#f6f5fb; --card:#fff; --text:#1d1b2e; --muted:#6b6882; --accent:#5b4bdb; --border:#dcd9ec; --warn:#fff6dd; --code:#efedf9; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#14131f; --card:#1f1d2e; --text:#eeedf7; --muted:#9b98b5; --border:#34314a; --warn:#3a3118; --code:#2a2840; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 1.7rem; margin: 0 0 4px; }
+    h2 { font-size: 1.25rem; margin: 36px 0 12px; padding-top: 8px; }
+    .lead { color: var(--muted); margin: 0 0 20px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px; margin:14px 0; }
+    .step { display:flex; gap:14px; }
+    .num { flex:none; width:32px; height:32px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700;
+           display:flex; align-items:center; justify-content:center; margin-top:2px; }
+    .step h3 { margin:0 0 4px; font-size:1.05rem; }
+    .step p, .step ul, .step ol { margin:6px 0; }
+    .step ul, .step ol { padding-left: 20px; }
+    code, pre { background:var(--code); border-radius:6px; font-family: ui-monospace, Consolas, monospace; font-size:.9em; }
+    code { padding: 1px 6px; }
+    pre { padding:10px 12px; overflow-x:auto; margin:8px 0; }
+    .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:10px 18px;
+           border-radius:12px; font-weight:600; margin:6px 0; }
+    .tip { background:var(--warn); border-radius:12px; padding:10px 14px; margin:10px 0; font-size:.95rem; }
+    .muted { color: var(--muted); }
+    details { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin:10px 0; }
+    summary { cursor:pointer; font-weight:600; }
+    a { color: var(--accent); }
+    kbd { background:var(--code); border:1px solid var(--border); border-radius:5px; padding:0 6px; font-size:.9em; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>💡 Idealist — setup guide</h1>
+  <p class="lead">Record ideas and daily tasks by voice, save them to <em>your own</em> Google Sheet, and get Telegram reminders. Takes about 15 minutes, once.</p>
+
+  <div class="card">
+    <strong>What you'll end up with</strong>
+    <ul>
+      <li>An app on your phone's home screen with <b>Daily Task</b> and <b>Idea Generator</b></li>
+      <li>Your own private Google Sheet that stores everything (nobody else can see it)</li>
+      <li>A Telegram bot that reminds you of pending tasks every 4 hours, plus an optional morning digest</li>
+    </ul>
+    <p class="muted" style="margin-bottom:0">You need: a Google account, the Telegram app, and Chrome on Android. Do <b>Part 1 on a computer</b> if you can, it is much easier.</p>
+  </div>
+
+  <div class="tip">🔐 <b>Use only one Google account while doing this.</b> If you're signed into several, open a Chrome <b>Incognito</b> window (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd>) and sign in with just the account you want to use. This avoids the most common error.</div>
+
+  <h2>Part 1 — Your sheet and reminders (on a computer)</h2>
+
+  <div class="card step"><div class="num">1</div><div>
+    <h3>Make your own copy of the sheet</h3>
+    <p>Click the button, then click <b>Make a copy</b>. Keep the name <b>Idealist</b>.</p>
+    <a id="template-link" class="btn" href="#" target="_blank" rel="noopener">Copy the Idealist sheet</a>
+    <p class="muted">The copy comes with the Ideas and Tasks tabs and the backend script already inside it.</p>
+  </div></div>
+
+  <div class="card step"><div class="num">2</div><div>
+    <h3>Open the script</h3>
+    <p>In your copy: <b>Extensions → Apps Script</b>. A new tab opens with code.</p>
+  </div></div>
+
+  <div class="card step"><div class="num">3</div><div>
+    <h3>Choose your secret password</h3>
+    <p>At the top of the code, find <code>SECRET</code> and replace the text between the quotes with your own long password (letters and numbers, no spaces). You'll type the same one into the app later.</p>
+    <pre>SECRET: 'my-own-long-secret-123',</pre>
+    <p>Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save.</p>
+  </div></div>
+
+  <div class="card step"><div class="num">4</div><div>
+    <h3>Set your time zone</h3>
+    <p>Click the <b>⚙ Project Settings</b> icon on the left, find <b>Time zone</b> and choose yours.</p>
+    <p class="muted">Reminders are paused 10 PM to 7 AM in this time zone, so it should match where you live.</p>
+  </div></div>
+
+  <div class="card step"><div class="num">5</div><div>
+    <h3>Allow the script to use your sheet</h3>
+    <ol>
+      <li>Click the <b>&lt;/&gt; Editor</b> icon on the left to go back to the code.</li>
+      <li>In the toolbar, choose <b><code>setupSheets</code></b> in the function dropdown and click <b>▶ Run</b>.</li>
+      <li>Click <b>Review permissions</b> and choose your account.</li>
+      <li>If you see <i>"Google hasn't verified this app"</i>, click <b>Advanced → Go to Idealist (unsafe)</b>. It's your own copy, so it is safe.</li>
+      <li>Click <b>Allow</b>.</li>
+    </ol>
+  </div></div>
+
+  <div class="card step"><div class="num">6</div><div>
+    <h3>Create your Telegram bot</h3>
+    <ol>
+      <li>Open Telegram, search for <b>@BotFather</b> (blue verified tick) and open it.</li>
+      <li>Send <code>/newbot</code>.</li>
+      <li>Give it a name (e.g. <i>My Idealist</i>) and a username ending in <code>bot</code> (e.g. <code>sam_idealist_bot</code>).</li>
+      <li>BotFather replies with a <b>token</b> that looks like <code>123456789:AAH…</code>. Copy it.</li>
+      <li>Open your new bot and send it a message, such as <i>hi</i>.</li>
+    </ol>
+    <div class="tip">Keep the token private, it is like a password for your bot.</div>
+  </div></div>
+
+  <div class="card step"><div class="num">7</div><div>
+    <h3>Connect the bot</h3>
+    <ol>
+      <li>Back in the script, paste the token between the quotes of <code>TELEGRAM_BOT_TOKEN</code>. Save with <kbd>Ctrl</kbd>+<kbd>S</kbd>.</li>
+      <li>Choose <b><code>findChatId</code></b> in the dropdown and click <b>▶ Run</b>.</li>
+      <li>Open the <b>Execution log</b> at the bottom. It says <i>"Your chat ID is: 123456789"</i>. Copy the number.</li>
+      <li>Paste it between the quotes of <code>TELEGRAM_CHAT_ID</code> and save.</li>
+      <li>Choose <b><code>testTelegram</code></b> and click <b>▶ Run</b>. You should get a message from your bot in Telegram. ✅</li>
+    </ol>
+  </div></div>
+
+  <div class="card step"><div class="num">8</div><div>
+    <h3>Turn on the reminders</h3>
+    <ol>
+      <li>Choose <b><code>createReminderTrigger</code></b> and click <b>▶ Run</b>. You now get a reminder every 4 hours with your pending tasks.</li>
+      <li><i>Optional:</i> for a morning summary, choose <b><code>createDigestTrigger</code></b> and click <b>▶ Run</b>. Change <code>DIGEST_HOUR</code> at the top first if you want a time other than 8 AM.</li>
+    </ol>
+  </div></div>
+
+  <div class="card step"><div class="num">9</div><div>
+    <h3>Publish the backend and copy its URL</h3>
+    <ol>
+      <li>Click the blue <b>Deploy</b> button (top right) → <b>New deployment</b>.</li>
+      <li>Click the ⚙ next to "Select type" and choose <b>Web app</b>.</li>
+      <li><b>Execute as:</b> <i>Me</i>. <b>Who has access:</b> <i>Anyone</i>.</li>
+      <li>Click <b>Deploy</b> (approve permissions if asked), then <b>copy the Web app URL</b>. It starts with <code>https://script.google.com/macros/s/…/exec</code>.</li>
+    </ol>
+    <div class="tip">Send that URL to your own phone (e.g. message it to yourself). <b>Don't share it or your secret with anyone</b>, together they give access to your sheet.</div>
+  </div></div>
+
+  <h2>Part 2 — The app (on your phone)</h2>
+
+  <div class="card step"><div class="num">10</div><div>
+    <h3>Install the app</h3>
+    <ol>
+      <li>Open this link in <b>Chrome on Android</b>:<br>
+        <a href="https://puja25c.github.io/idealist/">https://puja25c.github.io/idealist/</a></li>
+      <li>Tap the menu <b>⋮</b> → <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+    </ol>
+  </div></div>
+
+  <div class="card step"><div class="num">11</div><div>
+    <h3>Connect the app to your sheet</h3>
+    <ol>
+      <li>Open <b>Idealist</b> from your home screen. It opens on <b>Settings</b>.</li>
+      <li>Paste the <b>Web app URL</b> from step 9 and type your <b>Secret</b> from step 3.</li>
+      <li>Choose your voice language, tap <b>Test connection</b> (you should see "Connected ✔"), then <b>Save settings</b>.</li>
+      <li>Allow the <b>microphone</b> when asked.</li>
+    </ol>
+  </div></div>
+
+  <h2>Using it</h2>
+  <div class="card">
+    <ul>
+      <li><b>Idea Generator:</b> tap 🎤, speak, tap again to stop, fix any words, then <b>Save idea</b>.</li>
+      <li><b>Daily Task:</b> dictate the task, pick <b>Get it done by</b>, then <b>Save task</b>.</li>
+      <li><b>My tasks:</b> see what's due, mark <b>✓ Done</b> or <b>↻ Reschedule</b>.</li>
+      <li><b>My ideas:</b> read your ideas and <b>↗ Share</b> them on WhatsApp, Telegram, Gmail and more.</li>
+    </ul>
+  </div>
+
+  <h2>If something goes wrong</h2>
+  <details><summary>"Sorry, unable to open the file" when opening Apps Script</summary>
+    <p>You're signed into more than one Google account. Use an Incognito window with just one account, then open the sheet and <b>Extensions → Apps Script</b> again.</p></details>
+  <details><summary><code>setupSheets</code> is missing in the dropdown</summary>
+    <p>Save the script with <kbd>Ctrl</kbd>+<kbd>S</kbd> and reload the page.</p></details>
+  <details><summary>I opened a Google "Help" page instead of the permission screen</summary>
+    <p>You clicked a "Learn more" link. Close it, click <b>▶ Run</b> again, and click the blue <b>Review permissions</b> button.</p></details>
+  <details><summary>No Telegram message arrives</summary>
+    <p>Check that you sent your bot a message first, that the token and chat ID are pasted without spaces, and run <code>testTelegram</code> again to see the error in the Execution log.</p></details>
+  <details><summary>The app says "Wrong secret" or "Request failed"</summary>
+    <p>The Secret in the app must exactly match <code>SECRET</code> in the script. Also check the URL ends in <code>/exec</code>.</p></details>
+  <details><summary>I changed the script, but the app didn't notice</summary>
+    <p>After editing the code, use <b>Deploy → Manage deployments → ✏️ → Version: New version → Deploy</b>. The URL stays the same.</p></details>
+  <details><summary>Voice typing doesn't work</summary>
+    <p>Use Chrome on Android, allow the microphone for the app, and check the voice language in Settings. You can always type instead.</p></details>
+
+  <p class="muted">Your ideas and tasks live only in your own Google Sheet. Nobody else, including the person who shared this app with you, can see them.</p>
+</main>
+
+<script>
+  // The person who hosts this guide sets this to the "make a copy" link of the template sheet:
+  // https://docs.google.com/spreadsheets/d/<SHEET_ID>/copy
+  var TEMPLATE_COPY_URL = 'https://docs.google.com/spreadsheets/d/1kWF_EsX2GFwJUFcOIgGZ3rPrsi0bhC4Mvlc79QlaBms/copy?usp=sharing';
+  var a = document.getElementById('template-link');
+  if (/^https:\/\/docs\.google\.com\//.test(TEMPLATE_COPY_URL)) a.href = TEMPLATE_COPY_URL;
+  else { a.textContent = 'Ask the person who shared this for the sheet link'; a.style.opacity = .6; }
+</script>
+</body>
+</html>
